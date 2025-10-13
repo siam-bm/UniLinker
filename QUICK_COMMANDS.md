@@ -164,6 +164,34 @@ adb reverse tcp:3000 tcp:3000
 # Deep link test → Use ADB command or browser link
 ```
 
+## Deferred Deep Link Testing
+
+### Test Flow: App Not Installed
+```bash
+# 1. Uninstall app
+adb uninstall com.unilinker.app
+
+# 2. Open link in emulator browser
+# Navigate to: http://10.0.2.2:3000/uni/harvard
+# Should show "Get UniLinker" install prompt
+
+# 3. Build and install APK
+flutter build apk
+adb install build/app/outputs/flutter-apk/app-release.apk
+
+# 4. Manually trigger the deep link
+adb shell am start -W -a android.intent.action.VIEW -d "unilinker://university/harvard"
+
+# 5. Verify app opens to Harvard page
+```
+
+### Check Browser Storage
+```javascript
+// In emulator browser console
+localStorage.getItem('unilinker_deferred_link')
+localStorage.getItem('unilinker_deferred_university')
+```
+
 ## Troubleshooting
 
 ### ADB Not Found (Windows)

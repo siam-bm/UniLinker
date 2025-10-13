@@ -246,7 +246,7 @@ app.get('/api/generate-link/:universityId', (req, res) => {
   });
 });
 
-// Deep link redirect endpoint
+// Deep link redirect endpoint with deferred deep linking support
 app.get('/uni/:universityId', (req, res) => {
   const { universityId } = req.params;
   const university = universities[universityId.toLowerCase()];
@@ -256,20 +256,22 @@ app.get('/uni/:universityId', (req, res) => {
   }
 
   const deepLink = `unilinker://university/${universityId.toLowerCase()}`;
+  const apkDownloadUrl = `${req.protocol}://${req.get('host')}/download-apk`;
 
-  // Redirect to deep link
+  // Redirect to deep link with deferred deep linking support
   res.send(`
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Opening ${university.name} in UniLinker...</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          height: 100vh;
+          min-height: 100vh;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -278,7 +280,8 @@ app.get('/uni/:universityId', (req, res) => {
           padding: 20px;
         }
         .container {
-          max-width: 400px;
+          max-width: 450px;
+          width: 100%;
         }
         h1 { font-size: 28px; margin-bottom: 20px; }
         p { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
@@ -289,11 +292,38 @@ app.get('/uni/:universityId', (req, res) => {
           width: 40px;
           height: 40px;
           animation: spin 1s linear infinite;
-          margin: 0 auto;
+          margin: 0 auto 30px;
         }
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        .install-prompt {
+          display: none;
+          background: rgba(255,255,255,0.15);
+          border-radius: 12px;
+          padding: 25px;
+          backdrop-filter: blur(10px);
+        }
+        .install-prompt.show {
+          display: block;
+        }
+        .install-btn {
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 15px 30px;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 20px;
+          transition: transform 0.2s;
+          display: inline-block;
+          text-decoration: none;
+        }
+        .install-btn:hover {
+          transform: scale(1.05);
         }
         .fallback {
           margin-top: 30px;
@@ -306,23 +336,154 @@ app.get('/uni/:universityId', (req, res) => {
         }
       </style>
       <script>
-        // Attempt to open the deep link
-        window.location.href = '${deepLink}';
+        const deepLink = '${deepLink}';
+        const universityId = '${universityId}';
+        const apkDownloadUrl = '${apkDownloadUrl}';
 
-        // Fallback after 2 seconds
+        // Store the intended destination for deferred deep linking
+        localStorage.setItem('unilinker_deferred_link', deepLink);
+        localStorage.setItem('unilinker_deferred_university', universityId);
+
+        // Attempt to open the app
+        let appOpened = false;
+
+        // Try to open the deep link
+        window.location.href = deepLink;
+
+        // Detect if app opened (visibility change)
+        document.addEventListener('visibilitychange', function() {
+          if (document.hidden) {
+            appOpened = true;
+          }
+        });
+
+        // Show install prompt after timeout if app didn't open
         setTimeout(function() {
-          document.getElementById('message').textContent = 'If the app didn\\'t open automatically:';
-        }, 2000);
+          if (!appOpened && !document.hidden) {
+            document.getElementById('loader-message').style.display = 'none';
+            document.getElementById('install-prompt').classList.add('show');
+          }
+        }, 2500);
       </script>
     </head>
     <body>
       <div class="container">
-        <h1>Opening ${university.name}</h1>
-        <p id="message">Launching UniLinker app...</p>
-        <div class="loader"></div>
-        <div class="fallback">
-          <p>Manual deep link:</p>
-          <a href="${deepLink}">${deepLink}</a>
+        <div id="loader-message">
+          <h1>Opening ${university.name}</h1>
+          <p>Launching UniLinker app...</p>
+          <div class="loader"></div>
+        </div>
+
+        <div id="install-prompt" class="install-prompt">
+          <h1>📱 Get UniLinker</h1>
+          <p>Install the UniLinker app to view ${university.name} and discover other universities!</p>
+          <a href="${apkDownloadUrl}" class="install-btn">Download & Install App</a>
+          <div class="fallback">
+            <p>After installing, the app will automatically open to ${university.name}</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// APK download/install page
+app.get('/download-apk', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Download UniLinker</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          color: white;
+          padding: 20px;
+        }
+        .container {
+          max-width: 500px;
+          width: 100%;
+          text-align: center;
+        }
+        h1 { font-size: 32px; margin-bottom: 20px; }
+        p { font-size: 16px; opacity: 0.9; margin-bottom: 30px; line-height: 1.6; }
+        .download-box {
+          background: rgba(255,255,255,0.15);
+          border-radius: 12px;
+          padding: 30px;
+          backdrop-filter: blur(10px);
+          margin-bottom: 20px;
+        }
+        .download-btn {
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 15px 40px;
+          border-radius: 8px;
+          font-size: 18px;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-block;
+          text-decoration: none;
+          margin: 10px;
+          transition: transform 0.2s;
+        }
+        .download-btn:hover {
+          transform: scale(1.05);
+        }
+        .instruction {
+          background: rgba(255,255,255,0.1);
+          border-radius: 8px;
+          padding: 20px;
+          text-align: left;
+          font-size: 14px;
+        }
+        .instruction ol {
+          margin: 15px 0 0 20px;
+        }
+        .instruction li {
+          margin: 10px 0;
+          line-height: 1.5;
+        }
+        code {
+          background: rgba(0,0,0,0.3);
+          padding: 3px 8px;
+          border-radius: 4px;
+          font-family: monospace;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>📱 Download UniLinker</h1>
+
+        <div class="download-box">
+          <p>For local testing, build and install the APK using Flutter:</p>
+          <a href="#" class="download-btn" onclick="alert('Build APK using: flutter build apk'); return false;">
+            📦 Build Instructions
+          </a>
+        </div>
+
+        <div class="instruction">
+          <strong>🔨 Build & Install APK Locally:</strong>
+          <ol>
+            <li>Open terminal in your Flutter project</li>
+            <li>Run: <code>flutter build apk</code></li>
+            <li>APK will be at: <code>build/app/outputs/flutter-apk/app-release.apk</code></li>
+            <li>Install: <code>adb install build/app/outputs/flutter-apk/app-release.apk</code></li>
+          </ol>
+          <br>
+          <strong>📱 Production Setup:</strong>
+          <p style="margin-top: 10px;">In production, this page would redirect to Google Play Store or provide direct APK download.</p>
         </div>
       </div>
     </body>
