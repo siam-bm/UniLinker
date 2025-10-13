@@ -110,8 +110,12 @@ final GoRouter _router = GoRouter(
     // Handle custom scheme deep links (unilinker://...)
     final uri = state.uri;
     if (uri.scheme == 'unilinker') {
-      // Convert custom scheme to path: unilinker://university/harvard -> /university/harvard
-      return uri.path;
+      // URI structure: unilinker://university/harvard
+      // host = 'university', path = '/harvard'
+      // Combine them: /university/harvard
+      final host = uri.host;
+      final path = uri.path;
+      return '/$host$path';
     }
     return null; // No redirect needed
   },
