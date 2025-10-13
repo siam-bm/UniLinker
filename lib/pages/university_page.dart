@@ -1,72 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../main.dart' show getAllUniversities;
 import '../models/university.dart';
-import 'university_detail_page.dart';
 
 class UniversityPage extends StatelessWidget {
   const UniversityPage({super.key});
 
-  List<University> _getUniversities() {
-    return [
-      University(
-        name: 'Harvard University',
-        shortName: 'Harvard',
-        location: 'Cambridge, Massachusetts, USA',
-        description: 'Harvard University is a private Ivy League research university in Cambridge, Massachusetts. Established in 1636, Harvard is the oldest institution of higher education in the United States and one of the most prestigious universities in the world.',
-        established: '1636',
-        type: 'Private',
-        ranking: 1,
-        topPrograms: [
-          '• Business Administration',
-          '• Law',
-          '• Medicine',
-          '• Computer Science',
-          '• Economics',
-        ],
-        studentCount: '23,000+',
-        website: 'www.harvard.edu',
-      ),
-      University(
-        name: 'Bangladesh University of Engineering and Technology',
-        shortName: 'BUET',
-        location: 'Dhaka, Bangladesh',
-        description: 'Bangladesh University of Engineering and Technology (BUET) is a public research university in Dhaka, Bangladesh. It is the oldest and most prestigious engineering university in Bangladesh, known for its excellence in engineering and technological education.',
-        established: '1912',
-        type: 'Public',
-        ranking: 1,
-        topPrograms: [
-          '• Computer Science & Engineering',
-          '• Electrical & Electronic Engineering',
-          '• Mechanical Engineering',
-          '• Civil Engineering',
-          '• Architecture',
-        ],
-        studentCount: '10,000+',
-        website: 'www.buet.ac.bd',
-      ),
-      University(
-        name: 'United International University',
-        shortName: 'UIU',
-        location: 'Dhaka, Bangladesh',
-        description: 'United International University (UIU) is a private university in Dhaka, Bangladesh. Founded in 2003, UIU is committed to providing quality education and fostering innovation in various fields of study, with a focus on technology and business.',
-        established: '2003',
-        type: 'Private',
-        ranking: 15,
-        topPrograms: [
-          '• Computer Science & Engineering',
-          '• Business Administration',
-          '• Electrical & Electronic Engineering',
-          '• Civil Engineering',
-          '• English',
-        ],
-        studentCount: '8,000+',
-        website: 'www.uiu.ac.bd',
-      ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
-    final universities = _getUniversities();
+    final universities = getAllUniversities();
 
     return Scaffold(
       appBar: AppBar(
@@ -75,6 +17,10 @@ class UniversityPage extends StatelessWidget {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -93,12 +39,7 @@ class UniversityPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UniversityDetailPage(university: university),
-            ),
-          );
+          context.go('/university/${university.shortName.toLowerCase()}');
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
