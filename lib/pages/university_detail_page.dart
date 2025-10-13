@@ -11,7 +11,9 @@ class UniversityDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(university.shortName),
-        backgroundColor: Theme.of(context).colorScheme.secondary,
+        elevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -23,8 +25,8 @@ class UniversityDetailPage extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Theme.of(context).colorScheme.secondary,
                     Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.secondary,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

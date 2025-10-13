@@ -71,7 +71,10 @@ class UniversityPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Universities'),
-        backgroundColor: Theme.of(context).colorScheme.secondary,
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
