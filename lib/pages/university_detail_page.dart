@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/university.dart';
 
 class UniversityDetailPage extends StatelessWidget {
@@ -14,6 +15,10 @@ class UniversityDetailPage extends StatelessWidget {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/universities'),
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -134,7 +139,7 @@ class UniversityDetailPage extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.go('/universities');
                       },
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Back to Universities'),
