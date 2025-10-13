@@ -106,6 +106,15 @@ List<University> getAllUniversities() {
 // GoRouter configuration for deep linking
 final GoRouter _router = GoRouter(
   initialLocation: '/',
+  redirect: (context, state) {
+    // Handle custom scheme deep links (unilinker://...)
+    final uri = state.uri;
+    if (uri.scheme == 'unilinker') {
+      // Convert custom scheme to path: unilinker://university/harvard -> /university/harvard
+      return uri.path;
+    }
+    return null; // No redirect needed
+  },
   routes: [
     GoRoute(
       path: '/',
