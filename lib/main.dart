@@ -4,13 +4,28 @@ import 'pages/home_page.dart';
 import 'pages/university_page.dart';
 import 'pages/university_detail_page.dart';
 import 'models/university.dart';
+import 'services/deferred_link_service.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Check for deferred deep link on first launch
+  final deferredUniversityId = await DeferredLinkService.checkForDeferredLink();
+  
+  // Determine initial route
+  final initialLocation = deferredUniversityId != null 
+      ? '/university/$deferredUniversityId'
+      : '/';
+  
+  print('App starting with initial location: $initialLocation');
+  
+  runApp(MyApp(initialLocation: initialLocation));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialLocation;
+  
+  const MyApp({super.key, required this.initialLocation});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +54,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      routerConfig: _router,    );
+      routerConfig: _createRouter(initialLocation),
+    );
   }
 }
 
@@ -104,44 +120,46 @@ List<University> getAllUniversities() {
 }
 
 // GoRouter configuration for deep linking
-final GoRouter _router = GoRouter(
-  initialLocation: '/',
-  redirect: (context, state) {
-    // Handle custom scheme deep links (unilinker://...)
-    final uri = state.uri;
-    if (uri.scheme == 'unilinker') {
-      // URI structure: unilinker://university/harvard
-      // host = 'university', path = '/harvard'
-      // Combine them: /university/harvard
-      final host = uri.host;
-      final path = uri.path;
-      return '/$host$path';
-    }
-    return null; // No redirect needed
-  },
-  routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomePage(),
-    ),
-    GoRoute(
-      path: '/universities',
-      builder: (context, state) => const UniversityPage(),
-    ),
-    GoRoute(
-      path: '/university/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id']?.toLowerCase();
-        final universities = getAllUniversities();
+GoRouter _createRouter(String initialLocation) {
+  return GoRouter(
+    initialLocation: initialLocation,
+    redirect: (context, state) {
+      // Handle custom scheme deep links (unilinker://...)
+      final uri = state.uri;
+      if (uri.scheme == 'unilinker') {
+        // URI structure: unilinker://university/harvard
+        // host = 'university', path = '/harvard'
+        // Combine them: /university/harvard
+        final host = uri.host;
+        final path = uri.path;
+        return '/$host$path';
+      }
+      return null; // No redirect needed
+    },
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/universities',
+        builder: (context, state) => const UniversityPage(),
+      ),
+      GoRoute(
+        path: '/university/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']?.toLowerCase();
+          final universities = getAllUniversities();
 
-        // Find university by shortName (case-insensitive)
-        final university = universities.firstWhere(
-          (uni) => uni.shortName.toLowerCase() == id,
-          orElse: () => universities[0], // Default to first university if not found
-        );
+          // Find university by shortName (case-insensitive)
+          final university = universities.firstWhere(
+            (uni) => uni.shortName.toLowerCase() == id,
+            orElse: () => universities[0], // Default to first university if not found
+          );
 
-        return UniversityDetailPage(university: university);
-      },
-    ),
-  ],
-);
+          return UniversityDetailPage(university: university);
+        },
+      ),
+    ],
+  );
+}
