@@ -422,9 +422,32 @@ app.get('/uni/:universityId', (req, res) => {
         const universityId = '${universityId}';
         const apkDownloadUrl = '${apkDownloadUrl}';
 
-        // Store the intended destination for deferred deep linking
-        localStorage.setItem('unilinker_deferred_link', deepLink);
-        localStorage.setItem('unilinker_deferred_university', universityId);
+        // Collect device fingerprint
+        const fingerprint = {
+          userAgent: navigator.userAgent,
+          screenResolution: screen.width + 'x' + screen.height,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+          platform: navigator.platform,
+          colorDepth: screen.colorDepth,
+          pixelRatio: window.devicePixelRatio || 1
+        };
+
+        // Store fingerprint and destination on server
+        fetch('/api/store-deferred-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fingerprint: fingerprint,
+            destination: universityId
+          })
+        }).then(response => response.json())
+          .then(data => {
+            console.log('Deferred link stored:', data);
+          })
+          .catch(error => {
+            console.error('Error storing deferred link:', error);
+          });
 
         // Attempt to open the app
         let appOpened = false;
