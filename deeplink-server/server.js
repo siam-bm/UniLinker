@@ -5,6 +5,9 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
+// In-memory storage for deferred links (use database in production)
+const deferredLinks = new Map();
+
 // University data (same as Flutter app)
 const universities = {
   harvard: {
@@ -23,6 +26,85 @@ const universities = {
     location: 'Dhaka, Bangladesh',
   },
 };
+
+// Helper function to generate fingerprint hash
+function generateFingerprintHash(fingerprint) {
+  const crypto = require('crypto');
+  const fingerprintString = JSON.stringify(fingerprint);
+  return crypto.createHash('sha256').update(fingerprintString).digest('hex');
+}
+
+// API endpoint to store deferred link with device fingerprint
+app.post('/api/store-deferred-link', (req, res) => {
+  const { fingerprint, destination } = req.body;
+  
+  if (!fingerprint || !destination) {
+    return res.status(400).json({ success: false, message: 'Missing fingerprint or destination' });
+  }
+  
+  // Generate hash from fingerprint
+  const fingerprintHash = generateFingerprintHash(fingerprint);
+  
+  // Store with timestamp (expires after 7 days)
+  deferredLinks.set(fingerprintHash, {
+    destination,
+    timestamp: Date.now(),
+    fingerprint,
+    used: false
+  });
+  
+  console.log(`Stored deferred link: ${fingerprintHash.substring(0, 8)}... -> ${destination}`);
+  
+  res.json({ 
+    success: true, 
+    message: 'Deferred link stored',
+    fingerprintHash: fingerprintHash.substring(0, 16) + '...'
+  });
+});
+
+// API endpoint to check for deferred link
+app.post('/api/check-deferred-link', (req, res) => {
+  const { fingerprint } = req.body;
+  
+  if (!fingerprint) {
+    return res.status(400).json({ success: false, message: 'Missing fingerprint' });
+  }
+  
+  // Generate hash from fingerprint
+  const fingerprintHash = generateFingerprintHash(fingerprint);
+  
+  // Check if deferred link exists
+  const deferredLink = deferredLinks.get(fingerprintHash);
+  
+  if (!deferredLink) {
+    return res.json({ success: false, message: 'No deferred link found' });
+  }
+  
+  // Check if expired (7 days)
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() - deferredLink.timestamp > sevenDays) {
+    deferredLinks.delete(fingerprintHash);
+    return res.json({ success: false, message: 'Deferred link expired' });
+  }
+  
+  // Check if already used
+  if (deferredLink.used) {
+    return res.json({ success: false, message: 'Deferred link already used' });
+  }
+  
+  // Mark as used
+  deferredLink.used = true;
+  deferredLinks.set(fingerprintHash, deferredLink);
+  
+  console.log(`Resolved deferred link: ${fingerprintHash.substring(0, 8)}... -> ${deferredLink.destination}`);
+  
+  // Return destination
+  res.json({
+    success: true,
+    universityId: deferredLink.destination,
+    deepLink: `unilinker://university/${deferredLink.destination}`
+  });
+});
 
 // Home page with link generator interface
 app.get('/', (req, res) => {
